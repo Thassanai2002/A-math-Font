@@ -102,7 +102,7 @@ const GLYPH: Record<string, string> = { '*': '×', '/': '÷', '+-': '±', '*/': 
                 <span class="hint">วาง: คลิกเบี้ยในมือ แล้วคลิกช่อง / ย้าย: คลิกเบี้ยบนกระดานแล้วคลิกช่องใหม่</span>
               }
             </p>
-            <div class="rack {{ isMyTurn() ? '' : 'disabled' }}">
+            <div class="rack {{ reorderMode || isMyTurn() ? '' : 'disabled' }}">
               @for (pos of rackOrder; track $index) {
                 <div
                   class="rack-tile {{ rackClass(pos) }}"
@@ -120,7 +120,7 @@ const GLYPH: Record<string, string> = { '*': '×', '/': '÷', '+-': '±', '*/': 
             <div class="actions">
               <button class="primary" (click)="confirmPlace()" [disabled]="!canConfirm()">Confirm วาง</button>
               <button (click)="confirmPass()" [disabled]="!isMyTurn()">Pass</button>
-              <button (click)="toggleReorder()" [disabled]="!isMyTurn()" class="{{ reorderMode ? 'active' : '' }}">จัดเรียง</button>
+              <button (click)="toggleReorder()" [disabled]="!state" class="{{ reorderMode ? 'active' : '' }}">จัดเรียง</button>
               <button (click)="toggleExchange()" [disabled]="!isMyTurn()" class="{{ exchangeMode ? 'active' : '' }}">Exchange แลก</button>
               <button (click)="clearPending()" [disabled]="pending.length === 0">ยกเลิกการวาง</button>
             </div>
@@ -428,11 +428,34 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   onRackClick(index: number): void {
+    if (this.reorderMode) {
+      if (this.reorderPick === index) {
+        this.reorderPick = null;
+        return;
+      }
+
+      if (this.reorderPick !== null) {
+        const a = this.reorderPick;
+        const b = index;
+        const order = [...this.rackOrder];
+        const ai = order.indexOf(a);
+        const bi = order.indexOf(b);
+        if (ai >= 0 && bi >= 0) {
+          [order[ai], order[bi]] = [order[bi], order[ai]];
+        }
+        this.rackOrder = order;
+        this.reorderPick = null;
+      } else {
+        this.reorderPick = index;
+      }
+
+      return;
+    }
+
     if (!this.isMyTurn() || !this.state) {
       return;
     }
 
-    if (this.reorderMode) {
       if (this.reorderPick === index) {
         this.reorderPick = null;
         return;
